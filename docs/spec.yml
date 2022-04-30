@@ -1,0 +1,55 @@
+openapi: 3.0.2
+info:
+  title: Mini Aspire API
+  description: |-
+    Mini Aspire API is the implementation of the code challenge.
+  contact:
+    email: hysem101@hotmail.com
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: misc
+    description: Miscellaneous operations
+paths:
+  /v1/ping:
+    get:
+      summary: Health check
+      description: If the server responds with an OK response with the message `pong` then the server is ready to accept requests.
+      operationId: ping
+      tags:
+        - misc
+      responses:
+        "200":
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PingResponse"
+
+components:
+  schemas:
+    APIResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "message if any"
+        error:
+          type: object
+          example: "failed reason if any"
+        data:
+          type: object
+          example: "data if any"
+
+    PingResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "pong"
+  securitySchemes:
+    jwt_auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
