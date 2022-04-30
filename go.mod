@@ -2,11 +2,16 @@ module github.com/hysem/mini-aspire-api
 
 go 1.18
 
-require github.com/labstack/echo/v4 v4.6.3
+require (
+	github.com/jmoiron/sqlx v1.3.5
+	github.com/labstack/echo/v4 v4.6.3
+)
 
 require (
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/stretchr/objx v0.1.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
@@ -14,13 +19,17 @@ require (
 )
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/gommon v0.3.1 // indirect
+	github.com/lib/pq v1.10.5
 	github.com/mattn/go-colorable v0.1.11 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
+	github.com/satori/go.uuid v1.2.0
+	github.com/stretchr/testify v1.7.1
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	go.uber.org/zap v1.21.0

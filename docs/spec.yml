@@ -26,7 +26,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PingResponse"
-
+  /v1/user/token:
+    post:
+      tags:
+        - user
+      summary: Generate jwt token
+      description: Generates a JWT token after validating the given credentials for using protected endpoints.
+      operationId: generateToken
+      requestBody:
+        description: User credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateTokenRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateTokenResponse'
+        '400':
+          description: bad request
+        '401':
+          description: invalid credentials
+        '500':
+          description: internal server error
 components:
   schemas:
     APIResponse:
@@ -48,6 +73,29 @@ components:
         message:
           type: string
           example: "pong"
+
+    GenerateTokenRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          example: admin1@yopmail.com
+        password:
+          type: string
+          example: 'DWygs6wV'
+    
+    GenerateTokenResponse:
+      type: object
+      properties:
+        data: 
+          type: object
+          properties:
+            token: 
+              type: string
+              example: "<generated token>"
   securitySchemes:
     jwt_auth:
       type: http

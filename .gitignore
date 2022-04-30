@@ -15,3 +15,5 @@
 # vendor/
 config_*.env
 *.pdf
+
+*_mock.go

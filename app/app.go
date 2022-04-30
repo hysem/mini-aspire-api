@@ -9,9 +9,16 @@ import (
 	"time"
 
 	"github.com/hysem/mini-aspire-api/app/config"
+	"github.com/hysem/mini-aspire-api/app/core/bcrypt"
+	"github.com/hysem/mini-aspire-api/app/core/db"
+	"github.com/hysem/mini-aspire-api/app/core/jwt"
 	"github.com/hysem/mini-aspire-api/app/handler"
+	"github.com/hysem/mini-aspire-api/app/repository"
+	"github.com/hysem/mini-aspire-api/app/usecase"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -20,16 +27,22 @@ type App struct {
 	e *echo.Echo
 
 	provider struct {
+		masterDB *sqlx.DB
+		bcrypt   bcrypt.Bcrypt
+		jwt      jwt.JWT
 	}
 
 	repository struct {
+		user repository.User
 	}
 
 	usecase struct {
+		user usecase.User
 	}
 
 	handler struct {
 		misc *handler.Misc
+		user *handler.User
 	}
 }
 
@@ -77,9 +90,13 @@ func (a *App) Run() {
 // initRoutes intialize the routes
 func (a *App) initRoutes() error {
 	publicV1Group := a.e.Group("/v1")
+	publicV1UserGroup := publicV1Group.Group("/user")
 
 	// GET /v1/ping
 	publicV1Group.GET("/ping", a.handler.misc.Ping)
+
+	// POST /v1/user/token
+	publicV1UserGroup.POST("/token", a.handler.user.GenerateToken)
 
 	// GET /docs
 	a.e.Group("/docs", middleware.StaticWithConfig(middleware.StaticConfig{
@@ -92,25 +109,39 @@ func (a *App) initRoutes() error {
 
 // initProviders initializes the middlewares
 func (a *App) initProviders() error {
+	var err error
+
+	a.provider.masterDB, err = db.Connect(config.Current().Database.Master)
+	if err != nil {
+		return errors.Wrap(err, "failed to connect to master db")
+	}
+
+	a.provider.bcrypt, err = bcrypt.New(config.Current().Bcrypt)
+	if err != nil {
+		return errors.Wrap(err, "failed to create bcrypt provider")
+	}
+
+	a.provider.jwt = jwt.New(config.Current().JWT)
 
 	return nil
 }
 
 // initRepositories initializes the repositories
 func (a *App) initRepositories() error {
-
+	a.repository.user = repository.NewUser(a.provider.masterDB)
 	return nil
 }
 
 // initUsecases initializes the usecases
 func (a *App) initUsecases() error {
-
+	a.usecase.user = usecase.NewUser(a.repository.user, a.provider.bcrypt, a.provider.jwt)
 	return nil
 }
 
 // initHandlers initializes the handlers
 func (a *App) initHandlers() error {
 	a.handler.misc = handler.NewMisc()
+	a.handler.user = handler.NewUser(a.usecase.user)
 	return nil
 }
 

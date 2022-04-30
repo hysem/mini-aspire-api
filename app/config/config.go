@@ -1,6 +1,9 @@
 package config
 
 import (
+	"github.com/hysem/mini-aspire-api/app/core/bcrypt"
+	"github.com/hysem/mini-aspire-api/app/core/db"
+	"github.com/hysem/mini-aspire-api/app/core/jwt"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 )
@@ -15,6 +18,11 @@ type Config struct {
 	Log struct {
 		Level string
 	}
+	Database struct {
+		Master db.Config
+	}
+	Bcrypt bcrypt.Config
+	JWT    jwt.Config
 }
 
 var (

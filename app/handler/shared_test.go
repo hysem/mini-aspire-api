@@ -7,15 +7,18 @@ import (
 
 	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/hysem/mini-aspire-api/app/handler"
+	"github.com/hysem/mini-aspire-api/app/usecase"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 type handlerMocks struct {
+	userUsecase usecase.MockUser
 }
 
 type testHandler struct {
 	misc *handler.Misc
+	user *handler.User
 }
 
 func newHandler(t *testing.T) (*testHandler, *handlerMocks) {
@@ -23,11 +26,13 @@ func newHandler(t *testing.T) (*testHandler, *handlerMocks) {
 
 	u := &testHandler{
 		misc: handler.NewMisc(),
+		user: handler.NewUser(&m.userUsecase),
 	}
 	return u, m
 }
 
 func (m *handlerMocks) assertExpectations(t *testing.T) {
+	m.userUsecase.AssertExpectations(t)
 }
 
 func runHandler(t *testing.T, req *http.Request, handler echo.HandlerFunc, ctx *context.Context) *httptest.ResponseRecorder {
