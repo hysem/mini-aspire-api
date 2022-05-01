@@ -6,6 +6,7 @@ import (
 
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
+	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -95,6 +96,52 @@ func TestUsecase_Loan_ApproveLoan(t *testing.T) {
 			} else {
 				assert.Contains(t, actualErr.Error(), tc.expectedErr)
 			}
+		})
+	}
+}
+
+func TestUsecase_Loan_GetLoan(t *testing.T) {
+	request := &request.GetLoan{
+		Loan: &model.Loan{ID: 1},
+	}
+	testCases := map[string]struct {
+		setMocks         func(u *usecaseMocks)
+		expectedErr      string
+		expectedResponse *response.GetLoan
+	}{
+		`error case: failed to execute transaction`: {
+			setMocks: func(u *usecaseMocks) {
+				u.loanRepository.On("GetLoanEMIs", mock.Anything, request.Loan.ID).Return(nil, assert.AnError)
+			},
+			expectedErr: `u.loanRepository.GetLoanEMIs() failed`,
+		},
+		`success case: got loan details`: {
+			setMocks: func(u *usecaseMocks) {
+				u.loanRepository.On("GetLoanEMIs", mock.Anything, request.Loan.ID).Return([]*model.LoanEMI{{}}, nil)
+			},
+			expectedResponse: &response.GetLoan{
+				Loan:     request.Loan,
+				LoanEMIs: []*model.LoanEMI{{}},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			u, m := newUsecase(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			actualResponse, actualErr := u.loan.GetLoan(context.Background(), request)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+			assert.Equal(t, tc.expectedResponse, actualResponse)
 		})
 	}
 }

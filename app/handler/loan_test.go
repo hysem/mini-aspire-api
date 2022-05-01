@@ -157,3 +157,92 @@ func TestHandler_Loan_ApproveLoan(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_Loan_GetLoan(t *testing.T) {
+	loan := &model.Loan{
+		ID:     1,
+		Status: model.LoanStatusPending,
+		UserID: 2,
+	}
+	testCases := map[string]struct {
+		authUserID           uint64
+		setMocks             func(m *handlerMocks)
+		expectedResponseBody string
+		expectedStatusCode   int
+	}{
+		`error case: failed to view loan`: {
+			authUserID:           loan.UserID + 1,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusForbidden,
+			expectedResponseBody: `{"message":"you don't have access to this resource"}`,
+		},
+		`error case: failed to get loan details`: {
+			authUserID: loan.UserID,
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("GetLoan", mock.Anything, mock.Anything).Return(nil, assert.AnError)
+			},
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedResponseBody: `{"message":"something went wrong"}`,
+		},
+		`success case: got loan details`: {
+			authUserID: loan.UserID,
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("GetLoan", mock.Anything, &request.GetLoan{
+					Loan: loan,
+				}).Return(&response.GetLoan{
+					Loan:     loan,
+					LoanEMIs: []*model.LoanEMI{{Status: model.LoanStatusPending}},
+				}, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponseBody: `{
+				"data":{
+					"loan":{
+						"loan_id":1,
+						"user_id":2,
+						"amount":"0",
+						"terms":0,
+						"status":"PENDING",
+						"purpose":"",
+						"approved_by":null,
+						"created_at":"0001-01-01T00:00:00Z",
+						"updated_at":"0001-01-01T00:00:00Z"
+					},
+					"loan_emis":[{
+						"loan_emi_id":0,
+						"loan_id":0,
+						"seq_no":0,
+						"due_date":"0001-01-01T00:00:00Z",
+						"amount":"0",
+						"status":"PENDING",
+						"created_at":"0001-01-01T00:00:00Z",
+						"updated_at":"0001-01-01T00:00:00Z"
+					}]
+				}
+			}`,
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			h, m := newHandler(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			req, err := http.NewRequest(http.MethodGet, "/user/loan/1", nil)
+			req.Header.Add(echo.HeaderContentType, "application/json")
+			assert.NoError(t, err)
+
+			res := runHandler(t, req, h.loan.GetLoan, func(cc *context.Context) {
+				cc.AuthUser = &model.User{
+					UserID: tc.authUserID,
+				}
+				cc.Loan = loan
+			})
+
+			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
+			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
+		})
+	}
+}

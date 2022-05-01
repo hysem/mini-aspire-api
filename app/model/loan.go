@@ -14,7 +14,7 @@ type (
 		Terms      int64           `db:"terms" json:"terms"`
 		Status     LoanStatus      `db:"status" json:"status"`
 		Purpose    string          `db:"purpose" json:"purpose"`
-		ApprovedBy uint64          `db:"approved_by" json:"approved_by"`
+		ApprovedBy *uint64         `db:"approved_by" json:"approved_by"`
 		CreatedAt  time.Time       `db:"created_at" json:"created_at"`
 		UpdatedAt  time.Time       `db:"updated_at" json:"updated_at"`
 	}

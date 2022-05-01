@@ -86,3 +86,28 @@ func (h *Loan) ApproveLoan(c echo.Context) error {
 		Message: message.ApprovedLoan,
 	})
 }
+
+// GetLoan handles the loan approval request
+func (h *Loan) GetLoan(c echo.Context) error {
+	cc := context.GetContext(c)
+
+	if cc.AuthUser.UserID != cc.Loan.UserID {
+		return c.JSON(http.StatusForbidden, response.APIResponse{
+			Message: message.AccessDenied,
+		})
+	}
+
+	var req request.GetLoan
+	req.Loan = cc.Loan
+
+	resp, err := h.loanUsecase.GetLoan(c.Request().Context(), &req)
+	if err != nil {
+		zap.L().Error("h.loanUsecase.ApproveLoan() failed", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Message: message.InternalServerError,
+		})
+	}
+	return c.JSON(http.StatusOK, response.APIResponse{
+		Data: resp,
+	})
+}

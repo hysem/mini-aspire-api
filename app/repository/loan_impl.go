@@ -54,7 +54,7 @@ func (r *_loan) CreateLoanEMIs(ctx context.Context, loanEMIs []*model.LoanEMI, t
 	(:loan_id, :seq_no, :due_date, :amount, :status, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 
 	if _, err := tx.NamedExecContext(ctx, query, loanEMIs); err != nil {
-		return errors.Wrap(err, "failed to create loan")
+		return errors.Wrap(err, "failed to create loan emis")
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func (r *_loan) GetLoanByID(ctx context.Context, loanID uint64) (*model.Loan, er
 	if err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "failed to create loan")
+		return nil, errors.Wrap(err, "failed to get loan")
 	}
 
 	return &loan, nil
@@ -93,4 +93,23 @@ func (r *_loan) UpdateLoanEMIStatusByLoanID(ctx context.Context, loanID uint64, 
 		return errors.Wrap(err, "failed to update loan_emi status")
 	}
 	return nil
+}
+
+// GetLoanEMIs get all loan emis for the given loan
+func (r *_loan) GetLoanEMIs(ctx context.Context, loanID uint64) ([]*model.LoanEMI, error) {
+	const query = `SELECT 
+		loan_emi_id, loan_id, seq_no, due_date, amount, status, created_at, updated_at 
+	FROM loan_emi 
+	WHERE loan_id=$1
+	ORDER BY seq_no`
+
+	var loanEMIs []*model.LoanEMI
+	err := r.masterDB.SelectContext(ctx, &loanEMIs, query, loanID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "failed to get loan emis")
+	}
+
+	return loanEMIs, nil
 }

@@ -116,3 +116,15 @@ func (u *_loan) approveLoan(ctx context.Context, req *request.ApproveLoan) repos
 		return nil
 	}
 }
+
+// GetLoan retrieves loan details
+func (u *_loan) GetLoan(ctx context.Context, req *request.GetLoan) (*response.GetLoan, error) {
+	loanEMIs, err := u.loanRepository.GetLoanEMIs(ctx, req.Loan.ID)
+	if err != nil {
+		return nil, errors.Wrap(err, "u.loanRepository.GetLoanEMIs() failed")
+	}
+	return &response.GetLoan{
+		Loan:     req.Loan,
+		LoanEMIs: loanEMIs,
+	}, nil
+}

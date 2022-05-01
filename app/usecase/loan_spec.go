@@ -16,4 +16,7 @@ type Loan interface {
 
 	// ApproveLoan changes status of a loan and its associated loan_emi entries's status to APPROVED
 	ApproveLoan(ctx context.Context, req *request.ApproveLoan) error
+
+	// GetLoan retrieves loan details
+	GetLoan(ctx context.Context, req *request.GetLoan) (*response.GetLoan, error)
 }

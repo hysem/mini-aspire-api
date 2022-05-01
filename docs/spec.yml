@@ -90,8 +90,8 @@ paths:
     patch:
       tags:
         - loan
-      summary: Request loan
-      description: Creates a new loan request
+      summary: Approve loan
+      description: Approves a loan request. Only admin is allowed to use this endpoint.
       operationId: approveLoan
       parameters:
         - in: path
@@ -107,6 +107,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApproveLoanResponse'
+        '404':
+          description: bad request
+        '403':
+          description: forbidden
+        '500':
+          description: internal server error
+      security: 
+        - jwt_auth: []
+
+  /v1/user/loan/:lid:
+    get:
+      tags:
+        - loan
+      summary: Get loan details
+      description: Get an existing loan. Customers can view their own loan details only.
+      operationId: getLoan
+      parameters:
+        - in: path
+          name: lid
+          schema: 
+            type: integer
+          required: true
+          description: ID of the loan to be retrieved
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetLoanResponse'
         '404':
           description: bad request
         '403':
@@ -198,6 +228,92 @@ components:
         message:
           type: string
           example: Loan approved.
+    
+    GetLoanResponse:
+      type: object
+      properties:
+        data: 
+          type: object
+          properties:
+            loan: 
+              type: object
+              $ref: '#/components/schemas/Loan'
+            loan_emis: 
+              type: array
+              items: 
+                $ref: '#/components/schemas/LoanEMI'
+    Loan: 
+      type: object
+      properties:
+        loan_id: 
+          type: number
+          format: uint64
+          example: 2
+        user_id:
+          type: number
+          format: uint64
+          example: 6
+        amount:
+          type: number
+          format: currency
+          example: 10000
+        terms:
+          type: number
+          format: int64
+          example: 3
+        status:
+          type: string
+          enum: [PENDING, APPROVED, PAID]
+          example: PENDING
+        approved_by:
+          type: integer
+          format: uint64
+          example: 1
+        created_at:
+          type: string
+          format: time
+          example: "2022-05-01T14:25:44.543045Z"
+        updated_at:
+          type: string
+          format: time
+          example: "2022-05-01T14:25:44.543045Z"
+      
+    LoanEMI: 
+      type: object
+      properties:
+        loan_emi_id: 
+          type: number
+          format: uint64
+          example: 2
+        loan_id: 
+          type: number
+          format: uint64
+          example: 2
+        seq_no:
+          type: number
+          format: uint64
+          example: 6
+        amount:
+          type: number
+          format: currency
+          example: 10000
+        status:
+          type: string
+          enum: [PENDING, APPROVED, PAID]
+          example: PENDING
+        due_date:
+          type: string
+          format: time
+          example: "2022-05-08T00:00:00Z"
+        created_at:
+          type: string
+          format: time
+          example: "2022-05-01T14:25:44.543045Z"
+        updated_at:
+          type: string
+          format: time
+          example: "2022-05-01T14:25:44.543045Z"
+
   securitySchemes:
     jwt_auth:
       type: http

@@ -52,7 +52,7 @@ func TestMiddleware_Loan(t *testing.T) {
 				m.loanRepository.On("GetLoanByID", mock.Anything, loan.ID).Return(loan, nil)
 			},
 			expectedStatusCode:   http.StatusOK,
-			expectedResponseBody: `{"amount":"0", "approved_by":0, "created_at":"0001-01-01T00:00:00Z", "loan_id":1, "purpose":"", "status":"", "terms":0, "updated_at":"0001-01-01T00:00:00Z", "user_id":0}`,
+			expectedResponseBody: `{"amount":"0", "approved_by":null, "created_at":"0001-01-01T00:00:00Z", "loan_id":1, "purpose":"", "status":"", "terms":0, "updated_at":"0001-01-01T00:00:00Z", "user_id":0}`,
 		},
 	}
 	for name, tc := range testCases {

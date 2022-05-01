@@ -2,6 +2,7 @@ package request
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/shopspring/decimal"
 )
 
@@ -15,6 +16,9 @@ type (
 	ApproveLoan struct {
 		LoanID     uint64 `json:"-"`
 		ApprovedBy uint64 `json:"-"`
+	}
+	GetLoan struct {
+		Loan *model.Loan `json:"-"`
 	}
 )
 

@@ -67,7 +67,7 @@ func TestRepository_Loan_CreateLoan(t *testing.T) {
 	}
 }
 
-func TestLoan_CreateLoanEMIs(t *testing.T) {
+func TestRepository_Loan_CreateLoanEMIs(t *testing.T) {
 	loanID := uint64(1)
 	loanEMIs := []*model.LoanEMI{{
 		SeqNo:  1,
@@ -86,7 +86,7 @@ func TestLoan_CreateLoanEMIs(t *testing.T) {
 				m.masterDBMock.ExpectBegin()
 				m.masterDBMock.ExpectExec(query).WillReturnError(assert.AnError)
 			},
-			expectedErr: `failed to create loan`,
+			expectedErr: `failed to create loan emi`,
 		},
 		`success case: created loan emis`: {
 			setMocks: func(m *repositoryMocks) {
@@ -140,7 +140,7 @@ func TestRepository_Loan_GetLoanByID(t *testing.T) {
 			setMocks: func(m *repositoryMocks) {
 				m.masterDBMock.ExpectQuery(query).WillReturnError(assert.AnError)
 			},
-			expectedErr: `failed to create loan`,
+			expectedErr: `failed to get loan`,
 		},
 		`error case: no such rows`: {
 			setMocks: func(m *repositoryMocks) {
@@ -176,7 +176,7 @@ func TestRepository_Loan_GetLoanByID(t *testing.T) {
 	}
 }
 
-func TestLoan_UpdateLoanStatus(t *testing.T) {
+func TestRepository_Loan_UpdateLoanStatus(t *testing.T) {
 	loanID := uint64(1)
 	approvedBy := uint64(2)
 	status := model.LoanStatusApproved
@@ -220,7 +220,7 @@ func TestLoan_UpdateLoanStatus(t *testing.T) {
 	}
 }
 
-func TestLoan_UpdateLoanEMIStatusByLoanID(t *testing.T) {
+func TestRepository_Loan_UpdateLoanEMIStatusByLoanID(t *testing.T) {
 	loanID := uint64(1)
 	status := model.LoanStatusApproved
 
@@ -259,6 +259,60 @@ func TestLoan_UpdateLoanEMIStatusByLoanID(t *testing.T) {
 			} else {
 				assert.Contains(t, actualErr.Error(), tc.expectedErr)
 			}
+		})
+	}
+}
+
+func TestRepository_Loan_GetLoanEMIs(t *testing.T) {
+	loanEMI := &model.LoanEMI{
+		ID:     1,
+		LoanID: 2,
+		SeqNo:  1,
+		Amount: decimal.NewFromInt(10000),
+		Status: model.LoanStatusPending,
+	}
+	query := `SELECT loan_emi_id, loan_id, seq_no, due_date, amount, status, created_at, updated_at FROM loan_emi WHERE loan_id=$1 ORDER BY seq_no`
+	testCases := map[string]struct {
+		setMocks         func(m *repositoryMocks)
+		expectedErr      string
+		expectedResponse []*model.LoanEMI
+	}{
+		`error case: failed to execute query`: {
+			setMocks: func(m *repositoryMocks) {
+				m.masterDBMock.ExpectQuery(query).WillReturnError(assert.AnError)
+			},
+			expectedErr: `failed to get loan emis`,
+		},
+		`error case: no such rows`: {
+			setMocks: func(m *repositoryMocks) {
+				m.masterDBMock.ExpectQuery(query).WillReturnError(sql.ErrNoRows)
+			},
+		},
+		`success case: got loan details`: {
+			setMocks: func(m *repositoryMocks) {
+				rows := sqlmock.NewRows([]string{"loan_emi_id", "loan_id", "seq_no", "due_date", "amount", "status", "created_at", "updated_at"})
+				rows.AddRow(loanEMI.ID, loanEMI.LoanID, loanEMI.SeqNo, loanEMI.DueDate, loanEMI.Amount, loanEMI.Status, loanEMI.CreatedAt, loanEMI.UpdatedAt)
+				m.masterDBMock.ExpectQuery(query).
+					WithArgs(loanEMI.LoanID).
+					WillReturnRows(rows)
+			},
+			expectedResponse: []*model.LoanEMI{loanEMI},
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			r, m := newRepository(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			actualResponse, actualErr := r.loan.GetLoanEMIs(context.Background(), loanEMI.LoanID)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+			assert.Equal(t, tc.expectedResponse, actualResponse)
 		})
 	}
 }
