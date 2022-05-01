@@ -8,14 +8,15 @@ import (
 
 type (
 	Loan struct {
-		ID        uint64          `db:"loan_id" json:"loan_id"`
-		UserID    uint64          `db:"user_id" json:"user_id"`
-		Amount    decimal.Decimal `db:"amount" json:"amount"`
-		Terms     int64           `db:"terms" json:"terms"`
-		Status    LoanStatus      `db:"status" json:"status"`
-		Purpose   string          `db:"purpose" json:"purpose"`
-		CreatedAt time.Time       `db:"created_at" json:"created_at"`
-		UpdatedAt time.Time       `db:"updated_at" json:"updated_at"`
+		ID         uint64          `db:"loan_id" json:"loan_id"`
+		UserID     uint64          `db:"user_id" json:"user_id"`
+		Amount     decimal.Decimal `db:"amount" json:"amount"`
+		Terms      int64           `db:"terms" json:"terms"`
+		Status     LoanStatus      `db:"status" json:"status"`
+		Purpose    string          `db:"purpose" json:"purpose"`
+		ApprovedBy uint64          `db:"approved_by" json:"approved_by"`
+		CreatedAt  time.Time       `db:"created_at" json:"created_at"`
+		UpdatedAt  time.Time       `db:"updated_at" json:"updated_at"`
 	}
 
 	LoanEMI struct {

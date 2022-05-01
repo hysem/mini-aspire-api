@@ -16,11 +16,13 @@ import (
 
 type middlewareMocks struct {
 	userRepository repository.MockUser
+	loanRepository repository.MockLoan
 	jwt            jwt.MockJWT
 }
 
 type testMiddleware struct {
 	auth        echo.MiddlewareFunc
+	loan        echo.MiddlewareFunc
 	context     echo.MiddlewareFunc
 	grantAccess func(roles ...model.Role) echo.MiddlewareFunc
 }
@@ -30,6 +32,7 @@ func newMiddleware(t *testing.T) (*testMiddleware, *middlewareMocks) {
 
 	u := &testMiddleware{
 		auth:        middleware.Auth(&m.jwt, &m.userRepository),
+		loan:        middleware.Loan(&m.loanRepository),
 		context:     middleware.Context,
 		grantAccess: middleware.GrantAccess,
 	}
@@ -38,6 +41,7 @@ func newMiddleware(t *testing.T) (*testMiddleware, *middlewareMocks) {
 
 func (m *middlewareMocks) assertExpectations(t *testing.T) {
 	m.userRepository.AssertExpectations(t)
+	m.loanRepository.AssertExpectations(t)
 	m.jwt.AssertExpectations(t)
 }
 

@@ -57,3 +57,44 @@ func TestUsecase_Loan_RequestLoan(t *testing.T) {
 		})
 	}
 }
+
+func TestUsecase_Loan_ApproveLoan(t *testing.T) {
+	request := &request.ApproveLoan{
+		LoanID:     1,
+		ApprovedBy: 2,
+	}
+	testCases := map[string]struct {
+		setMocks    func(u *usecaseMocks)
+		expectedErr string
+	}{
+		`error case: failed to execute transaction`: {
+			setMocks: func(u *usecaseMocks) {
+				u.baseRepository.On("ExecTx", mock.Anything, mock.Anything).Return(assert.AnError)
+			},
+			expectedErr: `u.baseRepository.ExecTx() failed`,
+		},
+		`success case: request created`: {
+			setMocks: func(u *usecaseMocks) {
+				u.baseRepository.On("ExecTx", mock.Anything, mock.Anything).Return(nil)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			u, m := newUsecase(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			actualErr := u.loan.ApproveLoan(context.Background(), request)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+		})
+	}
+}

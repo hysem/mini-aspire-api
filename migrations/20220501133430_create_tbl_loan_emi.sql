@@ -16,5 +16,5 @@ CREATE TABLE "loan_emi"(
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE "loan";
+DROP TABLE "loan_emi";
 -- +goose StatementEnd

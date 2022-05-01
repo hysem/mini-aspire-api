@@ -54,6 +54,7 @@ type App struct {
 	middleware struct {
 		context     echo.MiddlewareFunc
 		auth        echo.MiddlewareFunc
+		loan        echo.MiddlewareFunc
 		grantAccess func(roles ...model.Role) echo.MiddlewareFunc
 	}
 }
@@ -109,6 +110,7 @@ func (a *App) initRoutes() error {
 	privateV1UserGroup := privateV1Group.Group("/user")
 
 	privateV1UserLoanGroup := privateV1UserGroup.Group("/loan")
+	privateV1LoanContextGroup := privateV1UserLoanGroup.Group("/:lid", a.middleware.loan)
 
 	// GET /v1/ping
 	publicV1Group.GET("/ping", a.handler.misc.Ping)
@@ -118,6 +120,7 @@ func (a *App) initRoutes() error {
 
 	// POST /v1/user/loan
 	privateV1UserLoanGroup.POST("", a.handler.loan.RequestLoan, a.middleware.grantAccess(model.RoleCustomer))
+	privateV1LoanContextGroup.PATCH("/approve", a.handler.loan.ApproveLoan, a.middleware.grantAccess(model.RoleAdmin))
 
 	// GET /docs
 	a.e.Group("/docs", middleware.StaticWithConfig(middleware.StaticConfig{
@@ -174,6 +177,7 @@ func (a *App) initHandlers() error {
 func (a *App) initMiddlewares() error {
 	a.middleware.context = mware.Context
 	a.middleware.auth = mware.Auth(a.provider.jwt, a.repository.user)
+	a.middleware.loan = mware.Loan(a.repository.loan)
 	a.middleware.grantAccess = mware.GrantAccess
 	return nil
 }

@@ -91,3 +91,59 @@ func TestUsecaseLoan_requestLoan(t *testing.T) {
 		})
 	}
 }
+
+func TestUsecaseLoan_approveLoan(t *testing.T) {
+	request := &request.ApproveLoan{
+		LoanID:     1,
+		ApprovedBy: 2,
+	}
+	testCases := map[string]struct {
+		setMocks         func(u *usecaseMocks)
+		expectedErr      string
+		expectedResponse response.RequestLoan
+	}{
+		`error case: failed to update loan status`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, request.LoanID, request.ApprovedBy, model.LoanStatusApproved, mock.Anything).Return(assert.AnError)
+			},
+			expectedErr: `u.loanRepository.UpdateLoanStatus() failed`,
+		},
+		`error case: failed to update loan_emi status`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, request.LoanID, request.ApprovedBy, model.LoanStatusApproved, mock.Anything).Return(nil)
+				u.loanRepository.On("UpdateLoanEMIStatusByLoanID", mock.Anything, request.LoanID, model.LoanStatusApproved, mock.Anything).Return(assert.AnError)
+			},
+			expectedErr: `u.loanRepository.UpdateLoanEMIStatusByLoanID() failed`,
+		},
+		`success case: updated`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, request.LoanID, request.ApprovedBy, model.LoanStatusApproved, mock.Anything).Return(nil)
+				u.loanRepository.On("UpdateLoanEMIStatusByLoanID", mock.Anything, request.LoanID, model.LoanStatusApproved, mock.Anything).Return(nil)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			u, m := newUsecase(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			tx, err := m.masterDB.Beginx()
+			assert.NoError(t, err)
+
+			actualErr := u.loan.approveLoan(context.Background(), request)(context.Background(), tx)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+		})
+	}
+}

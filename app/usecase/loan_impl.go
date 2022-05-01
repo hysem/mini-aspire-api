@@ -94,3 +94,25 @@ func (u *_loan) requestLoan(ctx context.Context, req *request.RequestLoan, resp 
 		return nil
 	}
 }
+
+// ApproveLoan changes status of a loan and its associated loan_emi entries's status to APPROVED
+func (u *_loan) ApproveLoan(ctx context.Context, req *request.ApproveLoan) error {
+	if err := u.baseRepository.ExecTx(ctx, u.approveLoan(ctx, req)); err != nil {
+		return errors.Wrap(err, "u.baseRepository.ExecTx() failed")
+	}
+	return nil
+}
+
+func (u *_loan) approveLoan(ctx context.Context, req *request.ApproveLoan) repository.TxFn {
+	return func(ctx context.Context, tx *sqlx.Tx) error {
+		err := u.loanRepository.UpdateLoanStatus(ctx, req.LoanID, req.ApprovedBy, model.LoanStatusApproved, tx)
+		if err != nil {
+			return errors.Wrap(err, "u.loanRepository.UpdateLoanStatus() failed")
+		}
+
+		if err := u.loanRepository.UpdateLoanEMIStatusByLoanID(ctx, req.LoanID, model.LoanStatusApproved, tx); err != nil {
+			return errors.Wrap(err, "u.loanRepository.UpdateLoanEMIStatusByLoanID() failed")
+		}
+		return nil
+	}
+}

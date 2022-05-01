@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/hysem/mini-aspire-api/app/core/apierr"
-	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
 	"github.com/labstack/echo/v4"
@@ -83,9 +82,7 @@ func TestHandler_User_Generate(t *testing.T) {
 			req.Header.Add(echo.HeaderContentType, "application/json")
 			assert.NoError(t, err)
 
-			cc := &context.Context{}
-
-			res := runHandler(t, req, h.user.GenerateToken, cc)
+			res := runHandler(t, req, h.user.GenerateToken, nil)
 			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
 			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
 		})

@@ -39,10 +39,14 @@ func (m *handlerMocks) assertExpectations(t *testing.T) {
 	m.loanUsecase.AssertExpectations(t)
 }
 
-func runHandler(t *testing.T, req *http.Request, handler echo.HandlerFunc, ctx *context.Context) *httptest.ResponseRecorder {
+func runHandler(t *testing.T, req *http.Request, handler echo.HandlerFunc, setContext func(cc *context.Context)) *httptest.ResponseRecorder {
 	res := httptest.NewRecorder()
-	ctx.Context = echo.New().NewContext(req, res)
-	err := handler(ctx)
+	c := echo.New().NewContext(req, res)
+	cc := &context.Context{Context: c}
+	if setContext != nil {
+		setContext(cc)
+	}
+	err := handler(cc)
 	assert.NoError(t, err)
 	return res
 }

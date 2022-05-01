@@ -13,4 +13,7 @@ import (
 type Loan interface {
 	// RequestLoan process a loan request
 	RequestLoan(ctx context.Context, req *request.RequestLoan) (*response.RequestLoan, error)
+
+	// ApproveLoan changes status of a loan and its associated loan_emi entries's status to APPROVED
+	ApproveLoan(ctx context.Context, req *request.ApproveLoan) error
 }

@@ -12,6 +12,10 @@ type (
 		Purpose string          `json:"purpose"`
 		UserID  uint64          `json:"-"`
 	}
+	ApproveLoan struct {
+		LoanID     uint64 `json:"-"`
+		ApprovedBy uint64 `json:"-"`
+	}
 )
 
 // Validate func

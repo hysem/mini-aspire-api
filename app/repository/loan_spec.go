@@ -16,4 +16,13 @@ type Loan interface {
 
 	// CreateLoanEMIs creates loan emis in the loan emi table
 	CreateLoanEMIs(ctx context.Context, loanEMIs []*model.LoanEMI, tx *sqlx.Tx) error
+
+	// GetLoanByID retrieves the loan details by id
+	GetLoanByID(ctx context.Context, loanID uint64) (*model.Loan, error)
+
+	// UpdateLoanStatus updates the status of the given loan
+	UpdateLoanStatus(ctx context.Context, loanID uint64, approvedBy uint64, status model.LoanStatus, tx *sqlx.Tx) error
+
+	// UpdateLoanStatus updates the status loan_emi entries for the given loan
+	UpdateLoanEMIStatusByLoanID(ctx context.Context, loanID uint64, status model.LoanStatus, tx *sqlx.Tx) error
 }

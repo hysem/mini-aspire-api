@@ -7,6 +7,7 @@ import (
 	"github.com/hysem/mini-aspire-api/app/core/message"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
+	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/hysem/mini-aspire-api/app/usecase"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -26,6 +27,7 @@ func NewLoan(
 	}
 }
 
+// RequestLoan handles the loan request
 func (h *Loan) RequestLoan(c echo.Context) error {
 	var req request.RequestLoan
 
@@ -55,5 +57,32 @@ func (h *Loan) RequestLoan(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response.APIResponse{
 		Message: message.LoanRequestSuccess,
 		Data:    resp,
+	})
+}
+
+// ApproveLoan handles the loan approval request
+func (h *Loan) ApproveLoan(c echo.Context) error {
+	var req request.ApproveLoan
+
+	cc := context.GetContext(c)
+
+	req.ApprovedBy = cc.AuthUser.UserID
+	req.LoanID = cc.Loan.ID
+	if cc.Loan.Status != model.LoanStatusPending {
+		return c.JSON(http.StatusOK, response.APIResponse{
+			Message: message.AlreadyApprovedLoan,
+		})
+	}
+
+	err := h.loanUsecase.ApproveLoan(c.Request().Context(), &req)
+	if err != nil {
+		zap.L().Error("h.loanUsecase.ApproveLoan() failed", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, response.APIResponse{
+			Message: message.InternalServerError,
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.APIResponse{
+		Message: message.ApprovedLoan,
 	})
 }

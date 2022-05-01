@@ -79,14 +79,79 @@ func TestHandler_Loan_RequestLoan(t *testing.T) {
 			defer m.assertExpectations(t)
 			tc.setMocks(m)
 
-			req, err := http.NewRequest(http.MethodPost, "/user/token", bytes.NewBufferString(tc.body))
+			req, err := http.NewRequest(http.MethodPost, "/user/loan", bytes.NewBufferString(tc.body))
 			req.Header.Add(echo.HeaderContentType, "application/json")
 			assert.NoError(t, err)
 
-			cc := &context.Context{}
-			cc.AuthUser = authUser
+			res := runHandler(t, req, h.loan.RequestLoan, func(cc *context.Context) {
+				cc.AuthUser = authUser
+			})
+			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
+			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
+		})
+	}
+}
 
-			res := runHandler(t, req, h.loan.RequestLoan, cc)
+func TestHandler_Loan_ApproveLoan(t *testing.T) {
+	authUser := &model.User{
+		UserID: 1,
+	}
+	testCases := map[string]struct {
+		loan                 *model.Loan
+		setMocks             func(m *handlerMocks)
+		expectedResponseBody string
+		expectedStatusCode   int
+	}{
+		`success case: already approved loan`: {
+			loan: &model.Loan{
+				ID:     1,
+				Status: model.LoanStatusApproved,
+			},
+			setMocks: func(m *handlerMocks) {
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedResponseBody: `{"message":"Loan is already approved"}`,
+		},
+		`error case: failed to approve loan`: {
+			loan: &model.Loan{
+				ID:     1,
+				Status: model.LoanStatusPending,
+			},
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("ApproveLoan", mock.Anything, mock.Anything).Return(assert.AnError)
+			},
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedResponseBody: `{"message":"something went wrong"}`,
+		},
+		`success case: approved loan`: {
+			loan: &model.Loan{
+				ID:     1,
+				Status: model.LoanStatusPending,
+			},
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("ApproveLoan", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedResponseBody: `{"message":"Loan approved"}`,
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			h, m := newHandler(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			req, err := http.NewRequest(http.MethodPatch, "/user/loan/1/approve", nil)
+			req.Header.Add(echo.HeaderContentType, "application/json")
+			assert.NoError(t, err)
+
+			res := runHandler(t, req, h.loan.ApproveLoan, func(cc *context.Context) {
+				cc.AuthUser = authUser
+				cc.Loan = tc.loan
+			})
+
 			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
 			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
 		})

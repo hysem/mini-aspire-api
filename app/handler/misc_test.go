@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +14,7 @@ func TestHandler_Misc_Ping(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/ping", nil)
 	assert.NoError(t, err)
 
-	res := runHandler(t, req, h.misc.Ping, &context.Context{})
+	res := runHandler(t, req, h.misc.Ping, nil)
 	assert.Equal(t, http.StatusOK, res.Result().StatusCode)
 	assert.JSONEq(t, `{"message":"pong"}`, res.Body.String())
 }

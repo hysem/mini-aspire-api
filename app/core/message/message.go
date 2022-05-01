@@ -9,4 +9,7 @@ const (
 	InvalidSession      = "invalid session"
 	AccessDenied        = "you don't have access to this resource"
 	LoanRequestSuccess  = "Loan request created successfully. Pending admin approval."
+	ApprovedLoan        = "Loan approved"
+	AlreadyApprovedLoan = "Loan is already approved"
+	NoSuchResource      = "no such resource"
 )

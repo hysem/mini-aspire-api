@@ -8,6 +8,7 @@ import (
 type Context struct {
 	echo.Context
 	AuthUser *model.User
+	Loan     *model.Loan
 }
 
 // GetContext retrieves the custom context from echo.Context
