@@ -14,11 +14,13 @@ import (
 
 type handlerMocks struct {
 	userUsecase usecase.MockUser
+	loanUsecase usecase.MockLoan
 }
 
 type testHandler struct {
 	misc *handler.Misc
 	user *handler.User
+	loan *handler.Loan
 }
 
 func newHandler(t *testing.T) (*testHandler, *handlerMocks) {
@@ -27,12 +29,14 @@ func newHandler(t *testing.T) (*testHandler, *handlerMocks) {
 	u := &testHandler{
 		misc: handler.NewMisc(),
 		user: handler.NewUser(&m.userUsecase),
+		loan: handler.NewLoan(&m.loanUsecase),
 	}
 	return u, m
 }
 
 func (m *handlerMocks) assertExpectations(t *testing.T) {
 	m.userUsecase.AssertExpectations(t)
+	m.loanUsecase.AssertExpectations(t)
 }
 
 func runHandler(t *testing.T, req *http.Request, handler echo.HandlerFunc, ctx *context.Context) *httptest.ResponseRecorder {

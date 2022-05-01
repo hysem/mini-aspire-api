@@ -10,11 +10,11 @@ type Role string
 const (
 	RoleInvalid  Role = ""
 	RoleAdmin    Role = "admin"
-	RoleConsumer Role = "consumer"
+	RoleCustomer Role = "customer"
 )
 
 var (
-	roles = []Role{RoleAdmin, RoleConsumer}
+	roles = []Role{RoleAdmin, RoleCustomer}
 )
 
 func (r *Role) UnmarshalText(b []byte) error {

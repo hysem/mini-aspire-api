@@ -13,6 +13,8 @@ import (
 	"github.com/hysem/mini-aspire-api/app/core/db"
 	"github.com/hysem/mini-aspire-api/app/core/jwt"
 	"github.com/hysem/mini-aspire-api/app/handler"
+	mware "github.com/hysem/mini-aspire-api/app/middleware"
+	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/hysem/mini-aspire-api/app/repository"
 	"github.com/hysem/mini-aspire-api/app/usecase"
 	"github.com/jmoiron/sqlx"
@@ -33,16 +35,26 @@ type App struct {
 	}
 
 	repository struct {
+		base repository.Base
 		user repository.User
+		loan repository.Loan
 	}
 
 	usecase struct {
 		user usecase.User
+		loan usecase.Loan
 	}
 
 	handler struct {
 		misc *handler.Misc
 		user *handler.User
+		loan *handler.Loan
+	}
+
+	middleware struct {
+		context     echo.MiddlewareFunc
+		auth        echo.MiddlewareFunc
+		grantAccess func(roles ...model.Role) echo.MiddlewareFunc
 	}
 }
 
@@ -89,14 +101,23 @@ func (a *App) Run() {
 
 // initRoutes intialize the routes
 func (a *App) initRoutes() error {
+	a.e.Use(a.middleware.context)
 	publicV1Group := a.e.Group("/v1")
 	publicV1UserGroup := publicV1Group.Group("/user")
+
+	privateV1Group := publicV1Group.Group("", a.middleware.auth)
+	privateV1UserGroup := privateV1Group.Group("/user")
+
+	privateV1UserLoanGroup := privateV1UserGroup.Group("/loan")
 
 	// GET /v1/ping
 	publicV1Group.GET("/ping", a.handler.misc.Ping)
 
 	// POST /v1/user/token
 	publicV1UserGroup.POST("/token", a.handler.user.GenerateToken)
+
+	// POST /v1/user/loan
+	privateV1UserLoanGroup.POST("", a.handler.loan.RequestLoan, a.middleware.grantAccess(model.RoleCustomer))
 
 	// GET /docs
 	a.e.Group("/docs", middleware.StaticWithConfig(middleware.StaticConfig{
@@ -128,13 +149,16 @@ func (a *App) initProviders() error {
 
 // initRepositories initializes the repositories
 func (a *App) initRepositories() error {
+	a.repository.base = repository.NewBase(a.provider.masterDB)
 	a.repository.user = repository.NewUser(a.provider.masterDB)
+	a.repository.loan = repository.NewLoan(a.provider.masterDB)
 	return nil
 }
 
 // initUsecases initializes the usecases
 func (a *App) initUsecases() error {
 	a.usecase.user = usecase.NewUser(a.repository.user, a.provider.bcrypt, a.provider.jwt)
+	a.usecase.loan = usecase.NewLoan(a.repository.loan, a.repository.base)
 	return nil
 }
 
@@ -142,10 +166,14 @@ func (a *App) initUsecases() error {
 func (a *App) initHandlers() error {
 	a.handler.misc = handler.NewMisc()
 	a.handler.user = handler.NewUser(a.usecase.user)
+	a.handler.loan = handler.NewLoan(a.usecase.loan)
 	return nil
 }
 
 // initMiddlewares initializes the middlewares
 func (a *App) initMiddlewares() error {
+	a.middleware.context = mware.Context
+	a.middleware.auth = mware.Auth(a.provider.jwt, a.repository.user)
+	a.middleware.grantAccess = mware.GrantAccess
 	return nil
 }

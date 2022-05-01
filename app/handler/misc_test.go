@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMisc_Ping(t *testing.T) {
+func TestHandler_Misc_Ping(t *testing.T) {
 	h, m := newHandler(t)
 	defer m.assertExpectations(t)
 

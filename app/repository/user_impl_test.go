@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUser_GetByID(t *testing.T) {
+func TestRepositoryUser_GetByID(t *testing.T) {
 	user := &model.User{
 		UserID:   1,
 		Name:     "name",
 		Email:    "email@yopmail.com",
 		Password: "password",
-		Role:     model.RoleConsumer,
+		Role:     model.RoleCustomer,
 	}
 	query := `SELECT user_id, name, email, password, role, created_at, updated_at FROM "user" WHERE user_id = $1`
 	testCases := map[string]struct {
@@ -62,13 +62,13 @@ func TestUser_GetByID(t *testing.T) {
 	}
 }
 
-func TestUser_GetByEmail(t *testing.T) {
+func TestRepository_User_GetByEmail(t *testing.T) {
 	user := &model.User{
 		UserID:   1,
 		Name:     "name",
 		Email:    "email@yopmail.com",
 		Password: "password",
-		Role:     model.RoleConsumer,
+		Role:     model.RoleCustomer,
 	}
 	query := `SELECT user_id, name, email, password, role, created_at, updated_at FROM "user" WHERE email = $1`
 	testCases := map[string]struct {

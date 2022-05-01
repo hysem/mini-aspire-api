@@ -13,7 +13,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 )
 
-func TestUser_GenerateToken(t *testing.T) {
+func TestUsecase_User_GenerateToken(t *testing.T) {
 	request := &request.UserGenerateToken{
 		Email:    "test@yopmail.com",
 		Password: "password",
@@ -23,7 +23,7 @@ func TestUser_GenerateToken(t *testing.T) {
 		UserID:    12,
 		Name:      "Test User",
 		Email:     request.Email,
-		Role:      model.RoleConsumer,
+		Role:      model.RoleCustomer,
 		Password:  "hashed_password",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),

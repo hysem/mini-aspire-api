@@ -14,6 +14,7 @@ import (
 
 var _ User = (*_user)(nil)
 
+// NewUser returns an instance of _user usecase
 func NewUser(
 	userRepository repository.User,
 	bcrypt bcrypt.Bcrypt,

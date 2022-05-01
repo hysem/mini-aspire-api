@@ -5,20 +5,26 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hysem/mini-aspire-api/app/core/apierr"
 	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
+	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/labstack/echo/v4"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func TestHandler_User_Generate(t *testing.T) {
+func TestHandler_Loan_RequestLoan(t *testing.T) {
 	const validRequestBody = `{
-		"email": "email@yopmail.com",
-		"password": "12345678"
+		"amount": "10000",
+		"terms": 3,
+		"purpose": "test"
 	}`
+	authUser := &model.User{
+		UserID: 1,
+	}
+
 	testCases := map[string]struct {
 		body                 string
 		setMocks             func(m *handlerMocks)
@@ -39,36 +45,30 @@ func TestHandler_User_Generate(t *testing.T) {
 
 			},
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedResponseBody: `{"error": {"email":"cannot be blank", "password":"cannot be blank"}, "message":"failed to validate request"}`,
+			expectedResponseBody: `{"error": {"terms":"cannot be blank","purpose":"cannot be blank"}, "message":"failed to validate request"}`,
 		},
-		`error case: failed to generate token`: {
+		`error case: failed to process loan request`: {
 			body: validRequestBody,
 			setMocks: func(m *handlerMocks) {
-				m.userUsecase.On("GenerateToken", mock.Anything, mock.Anything).Return(nil, assert.AnError)
+				m.loanUsecase.On("RequestLoan", mock.Anything, mock.Anything).Return(nil, assert.AnError)
 			},
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedResponseBody: `{"message":"something went wrong"}`,
 		},
-		`error case: failed to generate token; invalid credentials`: {
+		`success case: processed loan request`: {
 			body: validRequestBody,
 			setMocks: func(m *handlerMocks) {
-				m.userUsecase.On("GenerateToken", mock.Anything, mock.Anything).Return(nil, apierr.ErrInvalidCredentials)
-			},
-			expectedStatusCode:   http.StatusUnauthorized,
-			expectedResponseBody: `{"message":"invalid credentials"}`,
-		},
-		`success case: generated token`: {
-			body: validRequestBody,
-			setMocks: func(m *handlerMocks) {
-				m.userUsecase.On("GenerateToken", mock.Anything, &request.UserGenerateToken{
-					Email:    "email@yopmail.com",
-					Password: "12345678",
-				}).Return(&response.UserGenerateToken{
-					Token: "abcd",
+				m.loanUsecase.On("RequestLoan", mock.Anything, &request.RequestLoan{
+					Amount:  decimal.NewFromInt(10000),
+					Terms:   3,
+					UserID:  1,
+					Purpose: "test",
+				}).Return(&response.RequestLoan{
+					LoanID: 1,
 				}, nil)
 			},
-			expectedStatusCode:   http.StatusOK,
-			expectedResponseBody: `{"data":{"token":"abcd"}}`,
+			expectedStatusCode:   http.StatusCreated,
+			expectedResponseBody: `{"data":{"loan_id":1}, "message":"Loan request created successfully. Pending admin approval."}`,
 		},
 	}
 	for name, tc := range testCases {
@@ -84,8 +84,9 @@ func TestHandler_User_Generate(t *testing.T) {
 			assert.NoError(t, err)
 
 			cc := &context.Context{}
+			cc.AuthUser = authUser
 
-			res := runHandler(t, req, h.user.GenerateToken, cc)
+			res := runHandler(t, req, h.loan.RequestLoan, cc)
 			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
 			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
 		})

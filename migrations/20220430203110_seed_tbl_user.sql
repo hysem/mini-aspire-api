@@ -8,11 +8,11 @@ VALUES
 ('Admin 3', 'admin3@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'admin'),
 ('Admin 4', 'admin4@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'admin'),
 ('Admin 5', 'admin5@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'admin'),
-('Consumer 1', 'consu1@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'consumer'),
-('Consumer 2', 'consu2@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'consumer'),
-('Consumer 3', 'consu3@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'consumer'),
-('Consumer 4', 'consu4@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'consumer'),
-('Consumer 5', 'consu5@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'consumer');
+('Customer 1', 'cstmr1@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'customer'),
+('Customer 2', 'cstmr2@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'customer'),
+('Customer 3', 'cstmr3@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'customer'),
+('Customer 4', 'cstmr4@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'customer'),
+('Customer 5', 'cstmr5@yopmail.com', '$2a$12$f4fc/QNwMU7VvN2nSdPt/esCz/lIVj4je5H6vU6TcMgDzBUVgE67u', 'customer');
 -- +goose StatementEnd
 
 -- +goose Down
@@ -23,10 +23,10 @@ DELETE FROM "user" WHERE email IN (
 'admin3@yopmail.com',
 'admin4@yopmail.com',
 'admin5@yopmail.com',
-'consu1@yopmail.com',
-'consu2@yopmail.com',
-'consu3@yopmail.com',
-'consu4@yopmail.com',
-'consu5@yopmail.com'
+'cstmr1@yopmail.com',
+'cstmr2@yopmail.com',
+'cstmr3@yopmail.com',
+'cstmr4@yopmail.com',
+'cstmr5@yopmail.com'
 );
 -- +goose StatementEnd

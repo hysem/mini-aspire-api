@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/hysem/mini-aspire-api/app"
 	"github.com/hysem/mini-aspire-api/app/config"
@@ -10,6 +11,8 @@ import (
 )
 
 func main() {
+	time.Local = time.UTC
+
 	if err := config.Load(); err != nil {
 		log.Fatal("failed to load configuration", err)
 	}

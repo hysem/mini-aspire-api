@@ -13,10 +13,13 @@ import (
 type repositoryMocks struct {
 	masterDB     *sqlx.DB
 	masterDBMock sqlmock.Sqlmock
+	txFn         repository.MockTxFn
 }
 
-type testUsecase struct {
+type testRepository struct {
 	user repository.User
+	loan repository.Loan
+	base repository.Base
 }
 
 func queryMatcher() sqlmock.QueryMatcherFunc {
@@ -26,7 +29,7 @@ func queryMatcher() sqlmock.QueryMatcherFunc {
 	})
 }
 
-func newRepository(t *testing.T) (*testUsecase, *repositoryMocks) {
+func newRepository(t *testing.T) (*testRepository, *repositoryMocks) {
 	m := &repositoryMocks{}
 
 	if db, dbMock, err := sqlmock.New(sqlmock.QueryMatcherOption(queryMatcher())); err != nil {
@@ -36,12 +39,15 @@ func newRepository(t *testing.T) (*testUsecase, *repositoryMocks) {
 		m.masterDBMock = dbMock
 	}
 
-	u := &testUsecase{
+	u := &testRepository{
 		user: repository.NewUser(m.masterDB),
+		base: repository.NewBase(m.masterDB),
+		loan: repository.NewLoan(m.masterDB),
 	}
 	return u, m
 }
 
 func (m *repositoryMocks) assertExpectations(t *testing.T) {
 	assert.NoError(t, m.masterDBMock.ExpectationsWereMet())
+	m.txFn.AssertExpectations(t)
 }

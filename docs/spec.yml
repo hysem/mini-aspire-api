@@ -11,6 +11,10 @@ servers:
 tags:
   - name: misc
     description: Miscellaneous operations
+  - name: user
+    description: Miscellaneous operations
+  - name: loan
+    description: Miscellaneous operations
 paths:
   /v1/ping:
     get:
@@ -52,6 +56,35 @@ paths:
           description: invalid credentials
         '500':
           description: internal server error
+
+  /v1/user/loan:
+    post:
+      tags:
+        - loan
+      summary: Request loan
+      description: Creates a new loan request
+      operationId: createLoan
+      requestBody:
+        description: User credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestLoanRequest'
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestLoanResponse'
+        '400':
+          description: bad request
+        '403':
+          description: forbidden
+        '500':
+          description: internal server error
+      security: 
+        - jwt_auth: []
 components:
   schemas:
     APIResponse:
@@ -96,6 +129,38 @@ components:
             token: 
               type: string
               example: "<generated token>"
+    
+    RequestLoanRequest:
+      type: object
+      required:
+        - amount
+        - terms
+        - purpose
+      properties:
+        email:
+          type: number
+          format: currency
+          example: 10000
+        terms:
+          type: number
+          format: int64
+          example: 3
+        purpose:
+          type: string
+          example: for personal use
+    RequestLoanResponse:
+      type: object
+      properties:
+        data: 
+          type: object
+          properties:
+            loan_id: 
+              type: number
+              format: uint64
+              example: 1
+        message:
+          type: string
+          example: Loan request created successfully. Pending admin approval.
   securitySchemes:
     jwt_auth:
       type: http

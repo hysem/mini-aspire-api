@@ -1,9 +1,13 @@
 package context
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/hysem/mini-aspire-api/app/model"
+	"github.com/labstack/echo/v4"
+)
 
 type Context struct {
 	echo.Context
+	AuthUser *model.User
 }
 
 // GetContext retrieves the custom context from echo.Context
