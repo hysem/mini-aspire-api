@@ -9,10 +9,11 @@ const (
 	LoanStatusInvalid  LoanStatus = ""
 	LoanStatusPending  LoanStatus = "PENDING"
 	LoanStatusApproved LoanStatus = "APPROVED"
+	LoanStatusPaid     LoanStatus = "PAID"
 )
 
 var (
-	loanStatuses = []LoanStatus{LoanStatusPending, LoanStatusApproved}
+	loanStatuses = []LoanStatus{LoanStatusPending, LoanStatusApproved, LoanStatusPaid}
 )
 
 func (r *LoanStatus) UnmarshalText(b []byte) error {

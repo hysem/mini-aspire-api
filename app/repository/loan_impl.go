@@ -6,6 +6,7 @@ import (
 
 	"github.com/hysem/mini-aspire-api/app/model"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
 
@@ -79,17 +80,26 @@ func (r *_loan) GetLoanByID(ctx context.Context, loanID uint64) (*model.Loan, er
 
 // UpdateLoanStatus updates the status of the given loan
 func (r *_loan) UpdateLoanStatus(ctx context.Context, loanID uint64, approvedBy uint64, status model.LoanStatus, tx *sqlx.Tx) error {
-	const query = `UPDATE loan SET status=$1, approved_by=$2 WHERE loan_id=$3`
+	const query = `UPDATE loan SET status=$1, approved_by=$2, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$3`
 	if _, err := tx.ExecContext(ctx, query, status, approvedBy, loanID); err != nil {
 		return errors.Wrap(err, "failed to update loan status")
 	}
 	return nil
 }
 
-// UpdateLoanStatus updates the status loan_emi entries for the given loan
+// UpdateLoanEMIStatusByLoanID updates the status loan_emi entries for the given loan
 func (r *_loan) UpdateLoanEMIStatusByLoanID(ctx context.Context, loanID uint64, status model.LoanStatus, tx *sqlx.Tx) error {
-	const query = `UPDATE loan_emi SET status=$1 WHERE loan_id=$2`
+	const query = `UPDATE loan_emi SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$2`
 	if _, err := tx.ExecContext(ctx, query, status, loanID); err != nil {
+		return errors.Wrap(err, "failed to update loan_emi status")
+	}
+	return nil
+}
+
+// UpdateLoanEMIStatus updates the status loan_emi entries for the given loan
+func (r *_loan) UpdateLoanEMIStatus(ctx context.Context, loanID uint64, loanEMIIds []uint64, status model.LoanStatus, tx *sqlx.Tx) error {
+	const query = `UPDATE loan_emi SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$2 AND loan_emi_id=ANY($3)`
+	if _, err := tx.ExecContext(ctx, query, status, loanID, pq.Array(loanEMIIds)); err != nil {
 		return errors.Wrap(err, "failed to update loan_emi status")
 	}
 	return nil

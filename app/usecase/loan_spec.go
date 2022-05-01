@@ -19,4 +19,7 @@ type Loan interface {
 
 	// GetLoan retrieves loan details
 	GetLoan(ctx context.Context, req *request.GetLoan) (*response.GetLoan, error)
+
+	// RepayLoan repays the loan
+	RepayLoan(ctx context.Context, req *request.RepayLoan) error
 }

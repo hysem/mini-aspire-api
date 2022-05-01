@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/hysem/mini-aspire-api/app/core/apierr"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
 	"github.com/hysem/mini-aspire-api/app/model"
@@ -46,7 +47,7 @@ func (u *_loan) requestLoan(ctx context.Context, req *request.RequestLoan, resp 
 
 		loanID, err := u.loanRepository.CreateLoan(ctx, &model.Loan{
 			UserID:  req.UserID,
-			Amount:  req.Amount,
+			Amount:  *req.Amount,
 			Terms:   req.Terms,
 			Status:  model.LoanStatusPending,
 			Purpose: req.Purpose,
@@ -127,4 +128,51 @@ func (u *_loan) GetLoan(ctx context.Context, req *request.GetLoan) (*response.Ge
 		Loan:     req.Loan,
 		LoanEMIs: loanEMIs,
 	}, nil
+}
+
+// RepayLoan repays the loan
+func (u *_loan) RepayLoan(ctx context.Context, req *request.RepayLoan) error {
+	loanEMIs, err := u.loanRepository.GetLoanEMIs(ctx, req.Loan.ID)
+	if err != nil {
+		return errors.Wrap(err, "u.loanRepository.GetLoanEMIs() failed")
+	}
+
+	availableAmount := *req.Amount
+	fullyPaid := true
+	emisToBeMarkedAsPaid := make([]uint64, 0, len(loanEMIs))
+	for _, loanEMI := range loanEMIs {
+		if loanEMI.Status == model.LoanStatusPaid {
+			continue
+		}
+		if availableAmount.GreaterThanOrEqual(loanEMI.Amount) {
+			emisToBeMarkedAsPaid = append(emisToBeMarkedAsPaid, loanEMI.ID)
+			availableAmount = availableAmount.Sub(loanEMI.Amount)
+			continue
+		}
+		fullyPaid = false
+		break
+	}
+	if !availableAmount.Equal(decimal.Zero) {
+		return apierr.ErrInvalidRepaymentAmount
+	}
+
+	if err := u.baseRepository.ExecTx(ctx, u.repayLoan(ctx, req.Loan, emisToBeMarkedAsPaid, fullyPaid)); err != nil {
+		return errors.Wrap(err, "u.baseRepository.ExecTx() failed")
+	}
+	return nil
+}
+
+func (u *_loan) repayLoan(ctx context.Context, loan *model.Loan, loanEMIIds []uint64, fullyPaid bool) repository.TxFn {
+	return func(ctx context.Context, tx *sqlx.Tx) error {
+		if fullyPaid {
+			if err := u.loanRepository.UpdateLoanStatus(ctx, loan.ID, *loan.ApprovedBy, model.LoanStatusPaid, tx); err != nil {
+				return errors.Wrap(err, "u.loanRepository.UpdateLoanStatus() failed")
+			}
+		}
+
+		if err := u.loanRepository.UpdateLoanEMIStatus(ctx, loan.ID, loanEMIIds, model.LoanStatusPaid, tx); err != nil {
+			return errors.Wrap(err, "u.loanRepository.UpdateLoanEMIStatus() failed")
+		}
+		return nil
+	}
 }

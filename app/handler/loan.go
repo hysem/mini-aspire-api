@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/hysem/mini-aspire-api/app/core/apierr"
 	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/hysem/mini-aspire-api/app/core/message"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
@@ -102,12 +104,67 @@ func (h *Loan) GetLoan(c echo.Context) error {
 
 	resp, err := h.loanUsecase.GetLoan(c.Request().Context(), &req)
 	if err != nil {
-		zap.L().Error("h.loanUsecase.ApproveLoan() failed", zap.Error(err))
+		zap.L().Error("h.loanUsecase.GetLoan() failed", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, response.APIResponse{
 			Message: message.InternalServerError,
 		})
 	}
 	return c.JSON(http.StatusOK, response.APIResponse{
 		Data: resp,
+	})
+}
+
+// RepayLoan handles the loan repayment request
+func (h *Loan) RepayLoan(c echo.Context) error {
+	var req request.RepayLoan
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, response.APIResponse{
+			Message: message.ParsingFailed,
+		})
+	}
+
+	if err := req.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, response.APIResponse{
+			Error:   err,
+			Message: message.ValidationFailed,
+		})
+	}
+	cc := context.GetContext(c)
+
+	if cc.AuthUser.UserID != cc.Loan.UserID {
+		return c.JSON(http.StatusForbidden, response.APIResponse{
+			Message: message.AccessDenied,
+		})
+	}
+
+	if cc.Loan.Status == model.LoanStatusPaid {
+		return c.JSON(http.StatusBadRequest, response.APIResponse{
+			Message: message.AlreadyPaid,
+		})
+	}
+	if cc.Loan.Status == model.LoanStatusPending {
+		return c.JSON(http.StatusBadRequest, response.APIResponse{
+			Message: message.NotYetApprovedLoan,
+		})
+	}
+
+	req.Loan = cc.Loan
+
+	err := h.loanUsecase.RepayLoan(c.Request().Context(), &req)
+	if err != nil {
+		switch {
+		case errors.Is(err, apierr.ErrInvalidRepaymentAmount):
+			return c.JSON(http.StatusBadRequest, response.APIResponse{
+				Message: apierr.ErrInvalidRepaymentAmount.Error(),
+			})
+		default:
+			zap.L().Error("h.loanUsecase.ApproveLoan() failed", zap.Error(err))
+			return c.JSON(http.StatusInternalServerError, response.APIResponse{
+				Message: message.InternalServerError,
+			})
+		}
+	}
+	return c.JSON(http.StatusOK, response.APIResponse{
+		Message: message.PaymentSuccess,
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hysem/mini-aspire-api/app/core/apierr"
 	"github.com/hysem/mini-aspire-api/app/core/context"
 	"github.com/hysem/mini-aspire-api/app/dto/request"
 	"github.com/hysem/mini-aspire-api/app/dto/response"
@@ -21,6 +22,7 @@ func TestHandler_Loan_RequestLoan(t *testing.T) {
 		"terms": 3,
 		"purpose": "test"
 	}`
+	amount := decimal.NewFromInt(10000)
 	authUser := &model.User{
 		UserID: 1,
 	}
@@ -45,7 +47,7 @@ func TestHandler_Loan_RequestLoan(t *testing.T) {
 
 			},
 			expectedStatusCode:   http.StatusBadRequest,
-			expectedResponseBody: `{"error": {"terms":"cannot be blank","purpose":"cannot be blank"}, "message":"failed to validate request"}`,
+			expectedResponseBody: `{"error": {"terms":"cannot be blank", "amount":"cannot be blank", "purpose":"cannot be blank"}, "message":"failed to validate request"}`,
 		},
 		`error case: failed to process loan request`: {
 			body: validRequestBody,
@@ -59,7 +61,7 @@ func TestHandler_Loan_RequestLoan(t *testing.T) {
 			body: validRequestBody,
 			setMocks: func(m *handlerMocks) {
 				m.loanUsecase.On("RequestLoan", mock.Anything, &request.RequestLoan{
-					Amount:  decimal.NewFromInt(10000),
+					Amount:  &amount,
 					Terms:   3,
 					UserID:  1,
 					Purpose: "test",
@@ -68,7 +70,7 @@ func TestHandler_Loan_RequestLoan(t *testing.T) {
 				}, nil)
 			},
 			expectedStatusCode:   http.StatusCreated,
-			expectedResponseBody: `{"data":{"loan_id":1}, "message":"Loan request created successfully. Pending admin approval."}`,
+			expectedResponseBody: `{"data":{"loan_id":1}, "message":"loan request created"}`,
 		},
 	}
 	for name, tc := range testCases {
@@ -110,7 +112,7 @@ func TestHandler_Loan_ApproveLoan(t *testing.T) {
 			setMocks: func(m *handlerMocks) {
 			},
 			expectedStatusCode:   http.StatusOK,
-			expectedResponseBody: `{"message":"Loan is already approved"}`,
+			expectedResponseBody: `{"message":"loan is already approved"}`,
 		},
 		`error case: failed to approve loan`: {
 			loan: &model.Loan{
@@ -132,7 +134,7 @@ func TestHandler_Loan_ApproveLoan(t *testing.T) {
 				m.loanUsecase.On("ApproveLoan", mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedStatusCode:   http.StatusOK,
-			expectedResponseBody: `{"message":"Loan approved"}`,
+			expectedResponseBody: `{"message":"loan approved"}`,
 		},
 	}
 	for name, tc := range testCases {
@@ -239,6 +241,127 @@ func TestHandler_Loan_GetLoan(t *testing.T) {
 					UserID: tc.authUserID,
 				}
 				cc.Loan = loan
+			})
+
+			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)
+			assert.JSONEq(t, tc.expectedResponseBody, res.Body.String())
+		})
+	}
+}
+
+func TestHandler_Loan_RepayLoan(t *testing.T) {
+	userID := uint64(2)
+	getLoan := func(status model.LoanStatus) *model.Loan {
+		return &model.Loan{
+			ID:     1,
+			Status: status,
+			UserID: userID,
+		}
+	}
+	testCases := map[string]struct {
+		loan                 *model.Loan
+		authUserID           uint64
+		body                 string
+		setMocks             func(m *handlerMocks)
+		expectedResponseBody string
+		expectedStatusCode   int
+	}{
+		`error case: failed to parse request`: {
+			body:                 `{`,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"message":"failed to parse request"}`,
+		},
+		`error case: failed to validate request`: {
+			body:                 `{}`,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"error":{"amount":"cannot be blank"}, "message":"failed to validate request"}`,
+		},
+		`error case: someone's loan`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:                 getLoan(model.LoanStatusApproved),
+			authUserID:           userID + 1,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusForbidden,
+			expectedResponseBody: `{"message":"you don't have access to this resource"}`,
+		},
+		`error case: already paid loan`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:                 getLoan(model.LoanStatusPaid),
+			authUserID:           userID,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"message":"loan is already paid"}`,
+		},
+		`error case: not yet approved loan`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:                 getLoan(model.LoanStatusPending),
+			authUserID:           userID,
+			setMocks:             func(m *handlerMocks) {},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"message":"loan not yet approved"}`,
+		},
+		`error case: failed to repay loan`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:       getLoan(model.LoanStatusApproved),
+			authUserID: userID,
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("RepayLoan", mock.Anything, mock.Anything).Return(assert.AnError)
+			},
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedResponseBody: `{"message":"something went wrong"}`,
+		},
+		`error case: invalid repayment amount`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:       getLoan(model.LoanStatusApproved),
+			authUserID: userID,
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("RepayLoan", mock.Anything, mock.Anything).Return(apierr.ErrInvalidRepaymentAmount)
+			},
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedResponseBody: `{"message":"amount should be multiple of emi amount or should be equal to the outstanding amount"}`,
+		},
+		`success case: repaid`: {
+			body: `{
+				"amount":10000
+			}`,
+			loan:       getLoan(model.LoanStatusApproved),
+			authUserID: userID,
+			setMocks: func(m *handlerMocks) {
+				m.loanUsecase.On("RepayLoan", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedStatusCode:   http.StatusOK,
+			expectedResponseBody: `{"message":"payment success"}`,
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			h, m := newHandler(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			req, err := http.NewRequest(http.MethodPost, "/user/loan/1/repay", bytes.NewBufferString(tc.body))
+			req.Header.Add(echo.HeaderContentType, "application/json")
+			assert.NoError(t, err)
+
+			res := runHandler(t, req, h.loan.RepayLoan, func(cc *context.Context) {
+				cc.AuthUser = &model.User{
+					UserID: tc.authUserID,
+				}
+				cc.Loan = tc.loan
 			})
 
 			assert.Equal(t, tc.expectedStatusCode, res.Result().StatusCode)

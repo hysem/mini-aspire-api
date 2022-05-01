@@ -8,10 +8,10 @@ import (
 
 type (
 	RequestLoan struct {
-		Amount  decimal.Decimal `json:"amount"`
-		Terms   int64           `json:"terms"`
-		Purpose string          `json:"purpose"`
-		UserID  uint64          `json:"-"`
+		Amount  *decimal.Decimal `json:"amount"`
+		Terms   int64            `json:"terms"`
+		Purpose string           `json:"purpose"`
+		UserID  uint64           `json:"-"`
 	}
 	ApproveLoan struct {
 		LoanID     uint64 `json:"-"`
@@ -20,13 +20,24 @@ type (
 	GetLoan struct {
 		Loan *model.Loan `json:"-"`
 	}
+	RepayLoan struct {
+		Loan   *model.Loan      `json:"-"`
+		Amount *decimal.Decimal `json:"amount"`
+	}
 )
 
 // Validate func
 func (r *RequestLoan) Validate() error {
 	return validation.ValidateStruct(r,
-		validation.Field(&r.Amount, validation.Required), //TODO: custom validation
+		validation.Field(&r.Amount, validation.Required),
 		validation.Field(&r.Purpose, validation.Required, validation.Length(1, 200)),
 		validation.Field(&r.Terms, validation.Required, validation.Min(int64(1)), validation.Max(int64(100))),
+	)
+}
+
+// Validate func
+func (r *RepayLoan) Validate() error {
+	return validation.ValidateStruct(r,
+		validation.Field(&r.Amount, validation.Required),
 	)
 }

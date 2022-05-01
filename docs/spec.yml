@@ -65,7 +65,7 @@ paths:
       description: Creates a new loan request
       operationId: createLoan
       requestBody:
-        description: User credentials
+        description: Loan details
         content:
           application/json:
             schema:
@@ -86,7 +86,7 @@ paths:
       security: 
         - jwt_auth: []
 
-  /v1/user/loan/:lid/approve:
+  /v1/user/loan/{lid}/approve:
     patch:
       tags:
         - loan
@@ -107,8 +107,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApproveLoanResponse'
-        '404':
+        '400':
           description: bad request
+        '404':
+          description: not found
         '403':
           description: forbidden
         '500':
@@ -116,7 +118,45 @@ paths:
       security: 
         - jwt_auth: []
 
-  /v1/user/loan/:lid:
+  /v1/user/loan/{lid}/repay:
+    post:
+      tags:
+        - loan
+      summary: Repay loan
+      description: Repay the loan emi. The amount provided should be equal to the total outstanding amount or in multiples of emi
+      operationId: repayLoan
+      parameters:
+        - in: path
+          name: lid
+          schema: 
+            type: integer
+          required: true
+          description: ID of the loan to be approved
+      requestBody:
+        description: Repay details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepayLoanRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepayLoanResponse'
+        '400': 
+          description: bad request
+        '404':
+          description: not found
+        '403':
+          description: forbidden
+        '500':
+          description: internal server error
+      security: 
+        - jwt_auth: []
+
+  /v1/user/loan/{lid}:
     get:
       tags:
         - loan
@@ -138,7 +178,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetLoanResponse'
         '404':
-          description: bad request
+          description: not found
         '403':
           description: forbidden
         '500':
@@ -197,7 +237,7 @@ components:
         - terms
         - purpose
       properties:
-        email:
+        amount:
           type: number
           format: currency
           example: 10000
@@ -220,14 +260,33 @@ components:
               example: 1
         message:
           type: string
-          example: Loan request created successfully. Pending admin approval.
+          example: loan request created
+   
+    RepayLoanRequest:
+      type: object
+      required:
+        - amount
+        - terms
+        - purpose
+      properties:
+        amount:
+          type: number
+          format: currency
+          example: 10000
+
+    RepayLoanResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: payment success
     
     ApproveLoanResponse:
       type: object
       properties:
         message:
           type: string
-          example: Loan approved.
+          example: loan approved.
     
     GetLoanResponse:
       type: object

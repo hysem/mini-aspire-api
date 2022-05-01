@@ -23,8 +23,11 @@ type Loan interface {
 	// UpdateLoanStatus updates the status of the given loan
 	UpdateLoanStatus(ctx context.Context, loanID uint64, approvedBy uint64, status model.LoanStatus, tx *sqlx.Tx) error
 
-	// UpdateLoanStatus updates the status loan_emi entries for the given loan
+	// UpdateLoanEMIStatusByLoanID updates the status loan_emi entries for the given loan
 	UpdateLoanEMIStatusByLoanID(ctx context.Context, loanID uint64, status model.LoanStatus, tx *sqlx.Tx) error
+
+	// UpdateLoanEMIStatus updates the status loan_emi entries for the given loan
+	UpdateLoanEMIStatus(ctx context.Context, loanID uint64, loanEMIIds []uint64, status model.LoanStatus, tx *sqlx.Tx) error
 
 	// GetLoanEMIs get all loan emis for the given loan
 	GetLoanEMIs(ctx context.Context, loanID uint64) ([]*model.LoanEMI, error)

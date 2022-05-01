@@ -8,6 +8,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/hysem/mini-aspire-api/app/model"
+	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -181,7 +182,7 @@ func TestRepository_Loan_UpdateLoanStatus(t *testing.T) {
 	approvedBy := uint64(2)
 	status := model.LoanStatusApproved
 
-	query := `UPDATE loan SET status=$1, approved_by=$2 WHERE loan_id=$3`
+	query := `UPDATE loan SET status=$1, approved_by=$2, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$3`
 	testCases := map[string]struct {
 		setMocks    func(m *repositoryMocks)
 		expectedErr string
@@ -224,7 +225,7 @@ func TestRepository_Loan_UpdateLoanEMIStatusByLoanID(t *testing.T) {
 	loanID := uint64(1)
 	status := model.LoanStatusApproved
 
-	query := `UPDATE loan_emi SET status=$1 WHERE loan_id=$2`
+	query := `UPDATE loan_emi SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$2`
 	testCases := map[string]struct {
 		setMocks    func(m *repositoryMocks)
 		expectedErr string
@@ -254,6 +255,50 @@ func TestRepository_Loan_UpdateLoanEMIStatusByLoanID(t *testing.T) {
 			assert.NoError(t, err)
 
 			actualErr := r.loan.UpdateLoanEMIStatusByLoanID(context.Background(), loanID, status, tx)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
+
+func TestRepository_Loan_UpdateLoanEMIStatus(t *testing.T) {
+	loanID := uint64(1)
+	loanEMIs := []uint64{1, 2, 3}
+	status := model.LoanStatusPaid
+
+	query := `UPDATE loan_emi SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE loan_id=$2 AND loan_emi_id=ANY($3)`
+	testCases := map[string]struct {
+		setMocks    func(m *repositoryMocks)
+		expectedErr string
+	}{
+		`error case: failed to execute query`: {
+			setMocks: func(m *repositoryMocks) {
+				m.masterDBMock.ExpectBegin()
+				m.masterDBMock.ExpectExec(query).WillReturnError(assert.AnError)
+			},
+			expectedErr: `failed to update loan_emi status`,
+		},
+		`success case: updated loan status`: {
+			setMocks: func(m *repositoryMocks) {
+				m.masterDBMock.ExpectBegin()
+				m.masterDBMock.ExpectExec(query).WithArgs(status, loanID, pq.Array(loanEMIs)).WillReturnResult(sqlmock.NewResult(0, 1))
+			},
+		},
+	}
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			r, m := newRepository(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			tx, err := m.masterDB.Beginx()
+			assert.NoError(t, err)
+
+			actualErr := r.loan.UpdateLoanEMIStatus(context.Background(), loanID, loanEMIs, status, tx)
 			if tc.expectedErr == "" {
 				assert.NoError(t, actualErr)
 			} else {

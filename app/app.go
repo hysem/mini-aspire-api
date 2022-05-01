@@ -121,6 +121,7 @@ func (a *App) initRoutes() error {
 	// POST /v1/user/loan
 	privateV1UserLoanGroup.POST("", a.handler.loan.RequestLoan, a.middleware.grantAccess(model.RoleCustomer))
 	privateV1LoanContextGroup.PATCH("/approve", a.handler.loan.ApproveLoan, a.middleware.grantAccess(model.RoleAdmin))
+	privateV1LoanContextGroup.POST("/repay", a.handler.loan.RepayLoan, a.middleware.grantAccess(model.RoleCustomer))
 	privateV1LoanContextGroup.GET("", a.handler.loan.GetLoan, a.middleware.grantAccess(model.RoleCustomer))
 
 	// GET /docs

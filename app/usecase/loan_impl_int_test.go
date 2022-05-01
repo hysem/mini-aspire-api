@@ -13,8 +13,9 @@ import (
 )
 
 func TestUsecaseLoan_requestLoan(t *testing.T) {
+	amount := decimal.NewFromInt(10000)
 	request := &request.RequestLoan{
-		Amount:  decimal.NewFromInt(10000),
+		Amount:  &amount,
 		Terms:   3,
 		UserID:  1,
 		Purpose: "purpose",
@@ -37,7 +38,7 @@ func TestUsecaseLoan_requestLoan(t *testing.T) {
 				u.masterDBMock.ExpectBegin()
 				u.loanRepository.On("CreateLoan", mock.Anything, &model.Loan{
 					UserID:  request.UserID,
-					Amount:  request.Amount,
+					Amount:  *request.Amount,
 					Terms:   request.Terms,
 					Status:  model.LoanStatusPending,
 					Purpose: request.Purpose,
@@ -52,7 +53,7 @@ func TestUsecaseLoan_requestLoan(t *testing.T) {
 				u.masterDBMock.ExpectBegin()
 				u.loanRepository.On("CreateLoan", mock.Anything, &model.Loan{
 					UserID:  request.UserID,
-					Amount:  request.Amount,
+					Amount:  *request.Amount,
 					Terms:   request.Terms,
 					Status:  model.LoanStatusPending,
 					Purpose: request.Purpose,
@@ -139,6 +140,65 @@ func TestUsecaseLoan_approveLoan(t *testing.T) {
 			assert.NoError(t, err)
 
 			actualErr := u.loan.approveLoan(context.Background(), request)(context.Background(), tx)
+			if tc.expectedErr == "" {
+				assert.NoError(t, actualErr)
+			} else {
+				assert.Contains(t, actualErr.Error(), tc.expectedErr)
+			}
+		})
+	}
+}
+
+func TestUsecaseLoan_repayLoan(t *testing.T) {
+	adminID := uint64(3)
+	loan := &model.Loan{
+		ID:         1,
+		ApprovedBy: &adminID,
+	}
+	loanEMIs := []uint64{1, 2, 3}
+	isFullyPaid := true
+	testCases := map[string]struct {
+		setMocks         func(u *usecaseMocks)
+		expectedErr      string
+		expectedResponse response.RequestLoan
+	}{
+		`error case: failed to update loan status`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, loan.ID, *loan.ApprovedBy, model.LoanStatusPaid, mock.Anything).Return(assert.AnError)
+			},
+			expectedErr: `u.loanRepository.UpdateLoanStatus() failed`,
+		},
+		`error case: failed to update emi status`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, loan.ID, *loan.ApprovedBy, model.LoanStatusPaid, mock.Anything).Return(nil)
+				u.loanRepository.On("UpdateLoanEMIStatus", mock.Anything, loan.ID, loanEMIs, model.LoanStatusPaid, mock.Anything).Return(assert.AnError)
+			},
+			expectedErr: `u.loanRepository.UpdateLoanEMIStatus() failed`,
+		},
+		`success case: repaid`: {
+			setMocks: func(u *usecaseMocks) {
+				u.masterDBMock.ExpectBegin()
+				u.loanRepository.On("UpdateLoanStatus", mock.Anything, loan.ID, *loan.ApprovedBy, model.LoanStatusPaid, mock.Anything).Return(nil)
+				u.loanRepository.On("UpdateLoanEMIStatus", mock.Anything, loan.ID, loanEMIs, model.LoanStatusPaid, mock.Anything).Return(nil)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			u, m := newUsecase(t)
+			defer m.assertExpectations(t)
+			tc.setMocks(m)
+
+			tx, err := m.masterDB.Beginx()
+			assert.NoError(t, err)
+
+			actualErr := u.loan.repayLoan(context.Background(), loan, loanEMIs, isFullyPaid)(context.Background(), tx)
 			if tc.expectedErr == "" {
 				assert.NoError(t, actualErr)
 			} else {
