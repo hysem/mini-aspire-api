@@ -27,8 +27,12 @@
  - Start the application using `make run`
 
 ## For running tests
+### Unit test
 - Mocks should be generated first using `make generate`
 - Run the tests using `make test`
+### Feature Tests
+- Start the server `make run`
+- Run the test `make ftest`
 
 ## Docs
 - [Swagger Doc](localhost:8080/docs)
