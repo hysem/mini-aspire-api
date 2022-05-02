@@ -38,7 +38,7 @@ func (c *LoanContext) RequestLoan(who string, id int, amount string, terms int, 
 	return nil
 }
 
-func (c *LoanContext) CheckLoanRequestStatus(expectedStatus string) error {
+func (c *LoanContext) VerifyLoanRequestStatus(expectedStatus string) error {
 	if expectedStatus == "succeed" && c.statusCode == http.StatusCreated ||
 		expectedStatus == "fail" && c.statusCode != http.StatusCreated {
 		return nil
@@ -46,7 +46,7 @@ func (c *LoanContext) CheckLoanRequestStatus(expectedStatus string) error {
 	return fmt.Errorf("loan status check failed. expected: %s, got :%d", expectedStatus, c.statusCode)
 }
 
-func (c *LoanContext) CanViewLoanRequest(who string, id int, expectedPermission string) error {
+func (c *LoanContext) GetLoan(who string, id int, expectedPermission string) error {
 	resp, err := httpClient.Get(fmt.Sprintf(endpointGetLoan, c.loanID)).
 		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
 		Send()
@@ -59,32 +59,11 @@ func (c *LoanContext) CanViewLoanRequest(who string, id int, expectedPermission 
 	}
 
 	c.loanDetail = resp.Bytes()
+
 	return nil
 }
 
-func (c *LoanContext) GetLoan(who string, id int, expectedPermission string,
-	expectedStatus string,
-	expectedAmount string,
-	expectedTerms int64,
-	expectedPurpose string,
-) error {
-	resp, err := httpClient.Get(fmt.Sprintf(endpointGetLoan, c.loanID)).
-		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
-		Send()
-	if err != nil {
-		return errors.Wrap(err, "failed to get loan details")
-	}
-	if !(expectedPermission == "can" && resp.StatusCode == http.StatusOK ||
-		expectedPermission == "can't" && resp.StatusCode == http.StatusNotFound) {
-		return fmt.Errorf("%s view the loan details. got :%d", expectedPermission, resp.StatusCode)
-	}
-
-	if expectedPermission == "can't" {
-		return nil
-	}
-
-	c.loanDetail = resp.Bytes()
-
+func (c *LoanContext) VeryfyLoan(expectedStatus string, expectedAmount string, expectedTerms int64, expectedPurpose string) error {
 	if actualStatus := gjson.GetBytes(c.loanDetail, "data.loan.status").String(); actualStatus != expectedStatus {
 		return fmt.Errorf("expected loan status to be %s; got %s", expectedStatus, actualStatus)
 	}
