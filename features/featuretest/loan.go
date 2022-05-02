@@ -100,7 +100,24 @@ func (c *LoanContext) ApproveLoan(who string, id int, expectedStatus string) err
 	}
 	if !(expectedStatus == "succeed" && resp.StatusCode == http.StatusOK ||
 		expectedStatus == "failed" && resp.StatusCode != http.StatusOK) {
-		return fmt.Errorf("%s view the loan details. got :%d", expectedStatus, c.statusCode)
+		return fmt.Errorf("%s view the loan details. got :%d", expectedStatus, resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *LoanContext) RepayLoan(who string, id int, amount string, expectedStatus string) error {
+	resp, err := httpClient.Post(fmt.Sprintf(endpointRepayLoan, c.loanID)).
+		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
+		JSON(map[string]interface{}{
+			"amount": amount,
+		}).
+		Send()
+	if err != nil {
+		return errors.Wrap(err, "failed to approve loan")
+	}
+	if !(expectedStatus == "succeed" && resp.StatusCode == http.StatusOK ||
+		expectedStatus == "failed" && resp.StatusCode != http.StatusOK) {
+		return fmt.Errorf("%s view the loan details. got :%d=> %s", expectedStatus, resp.StatusCode, resp.Bytes())
 	}
 	return nil
 }

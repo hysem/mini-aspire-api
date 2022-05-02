@@ -17,4 +17,5 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^"([^"]*)" (\d+) approves the loan request and "([^"]*)"$`, lc.ApproveLoan)
 	ctx.Step(`^"([^"]*)" (\d+) "([^"]*)" view the loan request$`, lc.GetLoan)
 	ctx.Step(`^there should be a loan request in "([^"]*)" status for an amount of (\d+)\$, for (\d+) weeks, for the purpose of "([^"]*)"$`, lc.VeryfyLoan)
+	ctx.Step(`^"([^"]*)" (\d+) repays (\d+) towards the loan and "([^"]*)"$`, lc.RepayLoan)
 }
