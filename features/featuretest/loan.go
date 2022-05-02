@@ -46,7 +46,23 @@ func (c *LoanContext) CheckLoanRequestStatus(expectedStatus string) error {
 	return fmt.Errorf("loan status check failed. expected: %s, got :%d", expectedStatus, c.statusCode)
 }
 
-func (c *LoanContext) GetLoan(who string, id int, expectedPersmission string,
+func (c *LoanContext) CanViewLoanRequest(who string, id int, expectedPermission string) error {
+	resp, err := httpClient.Get(fmt.Sprintf(endpointGetLoan, c.loanID)).
+		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
+		Send()
+	if err != nil {
+		return errors.Wrap(err, "failed to get loan details")
+	}
+	if !(expectedPermission == "can" && resp.StatusCode == http.StatusOK ||
+		expectedPermission == "can't" && resp.StatusCode == http.StatusForbidden) {
+		return fmt.Errorf("%s view the loan details. got :%d", expectedPermission, resp.StatusCode)
+	}
+
+	c.loanDetail = resp.Bytes()
+	return nil
+}
+
+func (c *LoanContext) GetLoan(who string, id int, expectedPermission string,
 	expectedStatus string,
 	expectedAmount string,
 	expectedTerms int64,
@@ -58,9 +74,13 @@ func (c *LoanContext) GetLoan(who string, id int, expectedPersmission string,
 	if err != nil {
 		return errors.Wrap(err, "failed to get loan details")
 	}
-	if !(expectedPersmission == "can" && resp.StatusCode == http.StatusOK ||
-		expectedPersmission == "can't" && resp.StatusCode == http.StatusNotFound) {
-		return fmt.Errorf("%s view the loan details. got :%d", expectedPersmission, c.statusCode)
+	if !(expectedPermission == "can" && resp.StatusCode == http.StatusOK ||
+		expectedPermission == "can't" && resp.StatusCode == http.StatusNotFound) {
+		return fmt.Errorf("%s view the loan details. got :%d", expectedPermission, resp.StatusCode)
+	}
+
+	if expectedPermission == "can't" {
+		return nil
 	}
 
 	c.loanDetail = resp.Bytes()
