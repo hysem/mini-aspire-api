@@ -35,4 +35,4 @@
 - Run the test `make ftest`
 
 ## Docs
-- [Swagger Doc](localhost:8080/docs)
+- [Swagger Doc](http://localhost:8080/docs)
