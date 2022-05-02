@@ -56,7 +56,7 @@ func (c *LoanContext) GetLoan(who string, id int, expectedPersmission string,
 		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
 		Send()
 	if err != nil {
-		return errors.Wrap(err, "failed to request loan")
+		return errors.Wrap(err, "failed to get loan details")
 	}
 	if !(expectedPersmission == "can" && resp.StatusCode == http.StatusOK ||
 		expectedPersmission == "can't" && resp.StatusCode == http.StatusNotFound) {
@@ -89,5 +89,19 @@ func (c *LoanContext) VeryfyLoanEMI(expectedCount int64, field string, expectedV
 		return fmt.Errorf("expected value of %s field to be %s; got %s", field, expectedValues, actualValues)
 	}
 
+	return nil
+}
+
+func (c *LoanContext) ApproveLoan(who string, id int, expectedStatus string) error {
+	resp, err := httpClient.Patch(fmt.Sprintf(endpointApproveLoan, c.loanID)).
+		AddHeader(echo.HeaderAuthorization, c.uc.getAuthHeader(who, id)).
+		Send()
+	if err != nil {
+		return errors.Wrap(err, "failed to approve loan")
+	}
+	if !(expectedStatus == "succeed" && resp.StatusCode == http.StatusOK ||
+		expectedStatus == "failed" && resp.StatusCode != http.StatusOK) {
+		return fmt.Errorf("%s view the loan details. got :%d", expectedStatus, c.statusCode)
+	}
 	return nil
 }

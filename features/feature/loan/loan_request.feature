@@ -7,7 +7,7 @@ Feature: Loan request
     However there will be an error of .01 dollars which will be added to the last emi amount.
 
 Scenario: As an admin I cannot request for a loan
-    Given "admin" 10 logged in 
+    Given "admin" 1 logged in 
     When "admin" 1 request for a loan for an amount of 3000$, for 3 weeks, for the purpose of "bdd testing"
     Then loan request should "fail"
 
