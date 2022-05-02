@@ -17,7 +17,7 @@ generate:
 tools:
 	go install github.com/vektra/mockery/v2@latest
 	go install github.com/pressly/goose/v3/cmd/goose@latest
-	go install github.com/cucumber/godog/cmd/godog@upd-go1.18go 
+	go install github.com/cucumber/godog/cmd/godog@upd-go1.18
 
 dcmd=docker-compose -f docker-compose.yml
 dep-up:

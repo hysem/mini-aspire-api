@@ -2,6 +2,7 @@ package featuretest
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
@@ -26,6 +27,9 @@ func (c *UserContext) DoLogin(who string, id int) error {
 
 	if err != nil {
 		return errors.Wrap(err, "failed to login user")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("login failed")
 	}
 
 	c.jwtTokens[email] = gjson.GetBytes(resp.Bytes(), "data.token").String()
